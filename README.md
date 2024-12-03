@@ -1,0 +1,6 @@
+- [] Criação de conta
+- [] Login
+  - Validar e-mail e senha
+  - Gerar os tokens
+- [] Proteção das rotas
+- [] Obtenção de novos tokens por meio do refresh token
