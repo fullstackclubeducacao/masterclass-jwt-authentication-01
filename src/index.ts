@@ -7,6 +7,7 @@ import "./database";
 import { UserModel } from "./database";
 import { generateTokens, isEmailValid, isPasswordValid } from "./helpers";
 import { authMiddleware } from "./middlewares";
+import jwt, { JsonWebTokenError } from "jsonwebtoken";
 
 const app = express();
 
@@ -72,6 +73,34 @@ app.post("/login", async (req, res) => {
     email,
     tokens: generateTokens(user!._id.toString()),
   });
+});
+
+app.post("/refresh-token", (req, res) => {
+  try {
+    if (!process.env.JWT_REFRESH_SECRET) {
+      throw new Error("Refresh secret is not defined");
+    }
+    // vai receber o refresh token no body
+    const { refreshToken } = req.body;
+    // vai validar o refresh token
+    const tokenPayload = jwt.verify(
+      refreshToken,
+      process.env.JWT_REFRESH_SECRET
+    ) as { userId: string };
+    // se ele for válido, vai gerar um novo access e refresh token
+    const tokens = generateTokens(tokenPayload.userId);
+    res.status(200).json(tokens);
+  } catch (error) {
+    console.error(error);
+    if (error instanceof JsonWebTokenError) {
+      res.status(401).json({
+        message: "Unauthorized",
+      });
+    }
+    res.status(500).json({
+      message: "Internal server error",
+    });
+  }
 });
 
 app.listen(8080, () => {
