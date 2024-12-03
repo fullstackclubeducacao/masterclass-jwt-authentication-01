@@ -4,8 +4,7 @@ import express from "express";
 import bcrypt from "bcryptjs";
 import "./database";
 import { UserModel } from "./database";
-import { isEmailValid, isPasswordValid } from "./helpers";
-import jwt from "jsonwebtoken";
+import { generateTokens, isEmailValid, isPasswordValid } from "./helpers";
 
 const app = express();
 
@@ -13,9 +12,6 @@ app.use(express.json());
 
 app.post("/register", async (req, res) => {
   try {
-    if (!process.env.JWT_SECRET || !process.env.JWT_REFRESH_SECRET) {
-      throw new Error("Missing JWT_SECRET or JWT_REFRESH_SECRET in .env file");
-    }
     const { email, password } = req.body;
     if (!isEmailValid(email)) {
       res.status(400).json({
@@ -34,23 +30,41 @@ app.post("/register", async (req, res) => {
       email,
       password: hashedPassword,
     });
-    const accessToken = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, {
-      expiresIn: "15m",
-    });
-    const refreshToken = jwt.sign(
-      { userId: user._id },
-      process.env.JWT_REFRESH_SECRET,
-      {
-        expiresIn: "30d",
-      }
-    );
-    res.status(201).json({ email, tokens: { accessToken, refreshToken } });
+    res
+      .status(201)
+      .json({ email, tokens: generateTokens(user._id.toString()) });
   } catch (error) {
     res.status(500).json({
       message: "Internal server error",
     });
     console.error(error);
   }
+});
+
+app.post("/login", async (req, res) => {
+  const { email, password } = req.body;
+  //   buscar usuário por e-mail
+  const user = await UserModel.findOne({
+    email,
+  });
+  if (!user) {
+    res.status(400).json({
+      message: "Invalid email or password",
+    });
+  }
+  // verificar se a senha está correta
+  const isPasswordValid = bcrypt.compare(password, user!.password);
+
+  if (!isPasswordValid) {
+    res.status(400).json({
+      message: "Invalid email or password",
+    });
+  }
+  //   gerar tokens de autenticação
+  res.status(200).json({
+    email,
+    tokens: generateTokens(user!._id.toString()),
+  });
 });
 
 app.listen(8080, () => {
