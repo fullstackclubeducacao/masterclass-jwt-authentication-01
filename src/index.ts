@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import dotenv from "dotenv";
 dotenv.config();
 import express from "express";
@@ -5,10 +6,16 @@ import bcrypt from "bcryptjs";
 import "./database";
 import { UserModel } from "./database";
 import { generateTokens, isEmailValid, isPasswordValid } from "./helpers";
+import { authMiddleware } from "./middlewares";
 
 const app = express();
 
 app.use(express.json());
+
+app.get("/profile", authMiddleware, async (req, res) => {
+  const user = await UserModel.findById((req as any).userId);
+  res.json(user);
+});
 
 app.post("/register", async (req, res) => {
   try {
