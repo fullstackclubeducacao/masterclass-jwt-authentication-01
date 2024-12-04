@@ -8,10 +8,11 @@ import { UserModel } from "./database";
 import { generateTokens, isEmailValid, isPasswordValid } from "./helpers";
 import { authMiddleware } from "./middlewares";
 import jwt, { JsonWebTokenError } from "jsonwebtoken";
-
+import cors from "cors";
 const app = express();
 
 app.use(express.json());
+app.use(cors());
 
 app.get("/profile", authMiddleware, async (req, res) => {
   const user = await UserModel.findById((req as any).userId);
@@ -20,7 +21,7 @@ app.get("/profile", authMiddleware, async (req, res) => {
 
 app.post("/register", async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { firstName, lastName, age, email, password } = req.body;
     if (!isEmailValid(email)) {
       res.status(400).json({
         message: "Invalid email",
@@ -37,6 +38,9 @@ app.post("/register", async (req, res) => {
     const user = await UserModel.create({
       email,
       password: hashedPassword,
+      firstName,
+      lastName,
+      age,
     });
     res
       .status(201)
