@@ -22,11 +22,11 @@ export const authMiddleware = (
       userId: string;
     };
     (request as any).userId = tokenPayload.userId;
+    next();
   } catch (error) {
     console.error(error);
     res.status(401).send({
       message: "Unauthorized",
     });
   }
-  next();
 };
